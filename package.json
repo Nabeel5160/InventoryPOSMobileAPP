@@ -1,0 +1,20 @@
+{
+  "name": "iq-inventory-pos",
+  "private": true,
+  "version": "0.1.0",
+  "description": "IQ Computers wholesale inventory & POS monorepo",
+  "scripts": {
+    "dev:api": "pnpm --filter @iq/api start:dev",
+    "dev:mobile": "pnpm --filter @iq/mobile start",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run lint",
+    "test": "pnpm -r run test",
+    "db:generate": "pnpm --filter @iq/api prisma:generate",
+    "db:migrate": "pnpm --filter @iq/api prisma:migrate",
+    "db:seed": "pnpm --filter @iq/api prisma:seed"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.12.1"
+}

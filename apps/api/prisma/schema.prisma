@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  Admin
+  Manager
+  Sales
+  Warehouse
+}
+
+enum SalesOrderStatus {
+  draft
+  completed
+  cancelled
+}
+
+enum PaymentMethod {
+  cash
+  terminal
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String?
+  role         UserRole  @default(Sales)
+  firebaseUid  String?   @unique
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  auditLogs    AuditLog[]
+}
+
+model Warehouse {
+  id          String       @id @default(cuid())
+  name        String
+  location    String?
+  stockLevels StockLevel[]
+  salesOrders SalesOrder[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Product {
+  id           String       @id @default(cuid())
+  sku          String       @unique
+  name         String
+  description  String       @default("")
+  barcode      String?      @unique
+  unitCost     Float
+  basePrice    Float
+  taxClass     String       @default("standard")
+  taxRate      Float        @default(0.1)
+  reorderPoint Int          @default(5)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  priceTiers   PriceTier[]
+  stockLevels  StockLevel[]
+  orderLines   SalesOrderLine[]
+}
+
+model PriceTier {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  minQty    Int
+  unitPrice Float
+  currency  String  @default("USD")
+
+  @@index([productId, minQty])
+}
+
+model StockLevel {
+  id          String    @id @default(cuid())
+  productId   String
+  warehouseId String
+  quantity    Int       @default(0)
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime  @default(now())
+
+  @@unique([productId, warehouseId])
+}
+
+model Customer {
+  id             String       @id @default(cuid())
+  name           String
+  email          String?
+  phone          String?
+  priceTierLabel String       @default("default")
+  salesOrders    SalesOrder[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model SalesOrder {
+  id               String           @id @default(cuid())
+  customerId       String?
+  warehouseId      String
+  status           SalesOrderStatus @default(draft)
+  subtotal         Float
+  taxTotal         Float
+  total            Float
+  paymentMethod    PaymentMethod?
+  clientMutationId String?          @unique
+  customer         Customer?        @relation(fields: [customerId], references: [id])
+  warehouse        Warehouse        @relation(fields: [warehouseId], references: [id])
+  lines            SalesOrderLine[]
+  payment          PaymentRecord?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+}
+
+model SalesOrderLine {
+  id           String     @id @default(cuid())
+  salesOrderId String
+  productId    String
+  quantity     Int
+  unitPrice    Float
+  taxRate      Float
+  lineTotal    Float
+  salesOrder   SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  product      Product    @relation(fields: [productId], references: [id])
+}
+
+model PaymentRecord {
+  id           String        @id @default(cuid())
+  salesOrderId String        @unique
+  method       PaymentMethod
+  amount       Float
+  salesOrder   SalesOrder    @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  createdAt    DateTime      @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  actionType String
+  entity     String
+  entityId   String
+  details    Json?
+  timestamp  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@index([entity, entityId])
+  @@index([timestamp])
+}
+
+model SyncOutbox {
+  id               String   @id @default(cuid())
+  clientMutationId String   @unique
+  type             String
+  payload          Json
+  appliedAt        DateTime @default(now())
+}

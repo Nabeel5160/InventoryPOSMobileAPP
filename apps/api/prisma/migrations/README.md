@@ -1,0 +1,2 @@
+-- Initial schema applied via `prisma db push` or `prisma migrate deploy`
+-- See prisma/schema.prisma for the full model definition.
