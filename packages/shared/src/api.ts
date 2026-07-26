@@ -105,3 +105,31 @@ export const DashboardSummarySchema = z.object({
   totalProducts: z.number(),
 });
 export type DashboardSummary = z.infer<typeof DashboardSummarySchema>;
+
+export const CreatePurchaseOrderRequestSchema = z.object({
+  supplierId: z.string(),
+  warehouseId: z.string(),
+  notes: z.string().optional().nullable(),
+  lines: z.array(
+    z.object({
+      productId: z.string(),
+      quantity: z.number().int().positive(),
+      unitCost: z.number().nonnegative().optional(),
+    }),
+  ),
+});
+export type CreatePurchaseOrderRequest = z.infer<
+  typeof CreatePurchaseOrderRequestSchema
+>;
+
+export const ReceivePurchaseOrderRequestSchema = z.object({
+  lines: z.array(
+    z.object({
+      productId: z.string(),
+      quantity: z.number().int().positive(),
+    }),
+  ),
+});
+export type ReceivePurchaseOrderRequest = z.infer<
+  typeof ReceivePurchaseOrderRequestSchema
+>;

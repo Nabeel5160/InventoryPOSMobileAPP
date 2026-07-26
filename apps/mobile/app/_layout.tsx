@@ -55,6 +55,14 @@ export default function RootLayout() {
           name="receipt"
           options={{ headerShown: true, title: 'Receipt', headerStyle: { backgroundColor: colors.surface }, headerTintColor: colors.text }}
         />
+        <Stack.Screen
+          name="po/create"
+          options={{ headerShown: true, title: 'New PO', headerStyle: { backgroundColor: colors.surface }, headerTintColor: colors.text }}
+        />
+        <Stack.Screen
+          name="po/[id]"
+          options={{ headerShown: true, title: 'Purchase order', headerStyle: { backgroundColor: colors.surface }, headerTintColor: colors.text }}
+        />
       </Stack>
     </GestureHandlerRootView>
   );

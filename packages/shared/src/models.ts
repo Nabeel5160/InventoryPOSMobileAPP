@@ -118,3 +118,48 @@ export const AuditLogSchema = z.object({
   timestamp: z.string().datetime(),
 });
 export type AuditLog = z.infer<typeof AuditLogSchema>;
+
+export const SupplierSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  contactInfo: z.string().optional().nullable(),
+  email: z.string().email().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  leadTimeDays: z.number().int().nonnegative().default(7),
+  defaultCurrency: z.string().default('USD'),
+});
+export type Supplier = z.infer<typeof SupplierSchema>;
+
+export const PurchaseOrderStatusSchema = z.enum([
+  'draft',
+  'ordered',
+  'partial',
+  'received',
+  'cancelled',
+]);
+export type PurchaseOrderStatus = z.infer<typeof PurchaseOrderStatusSchema>;
+
+export const PurchaseOrderLineSchema = z.object({
+  id: z.string().optional(),
+  productId: z.string(),
+  sku: z.string().optional(),
+  name: z.string().optional(),
+  quantity: z.number().int().positive(),
+  receivedQty: z.number().int().nonnegative().default(0),
+  unitCost: z.number().nonnegative(),
+});
+export type PurchaseOrderLine = z.infer<typeof PurchaseOrderLineSchema>;
+
+export const PurchaseOrderSchema = z.object({
+  id: z.string(),
+  supplierId: z.string(),
+  supplierName: z.string().optional(),
+  warehouseId: z.string(),
+  status: PurchaseOrderStatusSchema,
+  lines: z.array(PurchaseOrderLineSchema),
+  notes: z.string().optional().nullable(),
+  orderedAt: z.string().datetime().optional(),
+  createdAt: z.string().datetime().optional(),
+  updatedAt: z.string().datetime().optional(),
+});
+export type PurchaseOrder = z.infer<typeof PurchaseOrderSchema>;

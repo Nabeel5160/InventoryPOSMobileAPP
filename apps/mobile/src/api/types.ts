@@ -1,12 +1,16 @@
 import type {
+  CreatePurchaseOrderRequest,
   CreateSalesOrderRequest,
   DashboardSummary,
   InventoryReport,
   LoginResponse,
   Product,
+  PurchaseOrder,
+  ReceivePurchaseOrderRequest,
   SalesAnalytics,
   SalesOrder,
   StockLevel,
+  Supplier,
   SyncRequest,
   SyncResponse,
   Warehouse,
@@ -29,4 +33,16 @@ export interface ApiClient {
   inventoryReport(token: string): Promise<InventoryReport>;
   salesAnalytics(token: string, period?: string): Promise<SalesAnalytics>;
   sync(token: string, body: SyncRequest): Promise<SyncResponse>;
+  listSuppliers(token: string): Promise<Supplier[]>;
+  listPurchaseOrders(token: string): Promise<PurchaseOrder[]>;
+  getPurchaseOrder(token: string, id: string): Promise<PurchaseOrder>;
+  createPurchaseOrder(
+    token: string,
+    body: CreatePurchaseOrderRequest,
+  ): Promise<PurchaseOrder>;
+  receivePurchaseOrder(
+    token: string,
+    id: string,
+    body: ReceivePurchaseOrderRequest,
+  ): Promise<PurchaseOrder>;
 }

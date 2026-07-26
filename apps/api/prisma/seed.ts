@@ -7,6 +7,9 @@ async function main() {
   await prisma.paymentRecord.deleteMany();
   await prisma.salesOrderLine.deleteMany();
   await prisma.salesOrder.deleteMany();
+  await prisma.purchaseOrderLine.deleteMany();
+  await prisma.purchaseOrder.deleteMany();
+  await prisma.supplier.deleteMany();
   await prisma.syncOutbox.deleteMany();
   await prisma.auditLog.deleteMany();
   await prisma.stockLevel.deleteMany();
@@ -145,6 +148,48 @@ async function main() {
       priceTierLabel: 'wholesale',
     },
   });
+
+  const supplier = await prisma.supplier.create({
+    data: {
+      name: 'Asia Component Traders',
+      contactInfo: 'Procurement desk',
+      email: 'sales@asiacomponents.example',
+      phone: '+92-21-111000111',
+      leadTimeDays: 5,
+      defaultCurrency: 'USD',
+    },
+  });
+  await prisma.supplier.create({
+    data: {
+      name: 'Global Silicon Hub',
+      contactInfo: 'B2B orders',
+      email: 'b2b@globalsilicon.example',
+      leadTimeDays: 10,
+      defaultCurrency: 'USD',
+    },
+  });
+
+  const firstProduct = await prisma.product.findFirst();
+  if (firstProduct) {
+    await prisma.purchaseOrder.create({
+      data: {
+        supplierId: supplier.id,
+        warehouseId: mainWh.id,
+        status: 'ordered',
+        notes: 'Seed open PO for SSD restock',
+        lines: {
+          create: [
+            {
+              productId: firstProduct.id,
+              quantity: 20,
+              receivedQty: 0,
+              unitCost: firstProduct.unitCost,
+            },
+          ],
+        },
+      },
+    });
+  }
 
   console.log('Seed complete. Demo users (password: password123):');
   for (const u of users) {

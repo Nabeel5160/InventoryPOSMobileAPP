@@ -1,12 +1,16 @@
 import type {
+  CreatePurchaseOrderRequest,
   CreateSalesOrderRequest,
   DashboardSummary,
   InventoryReport,
   LoginResponse,
   Product,
+  PurchaseOrder,
+  ReceivePurchaseOrderRequest,
   SalesAnalytics,
   SalesOrder,
   StockLevel,
+  Supplier,
   SyncRequest,
   SyncResponse,
   Warehouse,
@@ -143,5 +147,82 @@ export function createNestApi(): ApiClient {
         body: JSON.stringify(body),
       });
     },
+    listSuppliers(token) {
+      return request<Supplier[]>('/suppliers', { token });
+    },
+    async listPurchaseOrders(token) {
+      const rows = await request<Array<Record<string, unknown>>>(
+        '/orders/purchase',
+        { token },
+      );
+      return rows.map(mapPurchaseOrder);
+    },
+    async getPurchaseOrder(token, id) {
+      const row = await request<Record<string, unknown>>(
+        `/orders/purchase/${id}`,
+        { token },
+      );
+      return mapPurchaseOrder(row);
+    },
+    async createPurchaseOrder(token, body: CreatePurchaseOrderRequest) {
+      const row = await request<Record<string, unknown>>('/orders/purchase', {
+        method: 'POST',
+        token,
+        body: JSON.stringify(body),
+      });
+      return mapPurchaseOrder(row);
+    },
+    async receivePurchaseOrder(
+      token,
+      id,
+      body: ReceivePurchaseOrderRequest,
+    ) {
+      const row = await request<Record<string, unknown>>(
+        `/orders/purchase/${id}/receive`,
+        {
+          method: 'POST',
+          token,
+          body: JSON.stringify(body),
+        },
+      );
+      return mapPurchaseOrder(row);
+    },
+  };
+}
+
+function mapPurchaseOrder(row: Record<string, unknown>): PurchaseOrder {
+  const supplier = row.supplier as { name?: string } | undefined;
+  const lines = Array.isArray(row.lines) ? row.lines : [];
+  return {
+    id: String(row.id),
+    supplierId: String(row.supplierId),
+    supplierName: supplier?.name,
+    warehouseId: String(row.warehouseId),
+    status: row.status as PurchaseOrder['status'],
+    notes: (row.notes as string | null) ?? null,
+    orderedAt: row.orderedAt
+      ? new Date(row.orderedAt as string).toISOString()
+      : undefined,
+    createdAt: row.createdAt
+      ? new Date(row.createdAt as string).toISOString()
+      : undefined,
+    updatedAt: row.updatedAt
+      ? new Date(row.updatedAt as string).toISOString()
+      : undefined,
+    lines: lines.map((raw) => {
+      const l = raw as Record<string, unknown>;
+      const product = l.product as
+        | { sku?: string; name?: string }
+        | undefined;
+      return {
+        id: String(l.id),
+        productId: String(l.productId),
+        sku: product?.sku,
+        name: product?.name,
+        quantity: Number(l.quantity),
+        receivedQty: Number(l.receivedQty ?? 0),
+        unitCost: Number(l.unitCost),
+      };
+    }),
   };
 }

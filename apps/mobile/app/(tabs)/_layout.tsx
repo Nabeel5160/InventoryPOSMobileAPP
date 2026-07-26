@@ -42,6 +42,14 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="purchases"
+        options={{
+          title: 'POs',
+          tabBarAccessibilityLabel: 'Purchase orders tab',
+          tabBarIcon: ({ focused }) => <TabIcon label="📥" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
         name="pos"
         options={{
           title: 'POS',

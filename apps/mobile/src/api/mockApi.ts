@@ -2,14 +2,18 @@ import {
   calcOrderTotals,
   isLowStock,
   resolveUnitPrice,
+  type CreatePurchaseOrderRequest,
   type CreateSalesOrderRequest,
   type DashboardSummary,
   type InventoryReport,
   type LoginResponse,
   type Product,
+  type PurchaseOrder,
+  type ReceivePurchaseOrderRequest,
   type SalesAnalytics,
   type SalesOrder,
   type StockLevel,
+  type Supplier,
   type SyncRequest,
   type SyncResponse,
   type User,
@@ -142,6 +146,52 @@ let stock: StockLevel[] = [
 
 let orders: SalesOrder[] = [];
 const tokens = new Map<string, string>();
+
+const suppliers: Supplier[] = [
+  {
+    id: 'sup-1',
+    name: 'Asia Component Traders',
+    contactInfo: 'Procurement desk',
+    email: 'sales@asiacomponents.example',
+    phone: '+92-21-111000111',
+    leadTimeDays: 5,
+    defaultCurrency: 'USD',
+  },
+  {
+    id: 'sup-2',
+    name: 'Global Silicon Hub',
+    contactInfo: 'B2B orders',
+    email: 'b2b@globalsilicon.example',
+    phone: null,
+    leadTimeDays: 10,
+    defaultCurrency: 'USD',
+  },
+];
+
+let purchaseOrders: PurchaseOrder[] = [
+  {
+    id: 'po-seed-1',
+    supplierId: 'sup-1',
+    supplierName: 'Asia Component Traders',
+    warehouseId: 'wh-main',
+    status: 'ordered',
+    notes: 'Seed open PO for SSD restock',
+    lines: [
+      {
+        id: 'pol-1',
+        productId: 'p4',
+        sku: 'IQ-SSD-1T',
+        name: '1TB NVMe SSD',
+        quantity: 20,
+        receivedQty: 0,
+        unitCost: 55,
+      },
+    ],
+    orderedAt: now(),
+    createdAt: now(),
+    updatedAt: now(),
+  },
+];
 
 function requireUser(token: string) {
   const userId = tokens.get(token);
@@ -405,6 +455,107 @@ export function createMockApi(): ApiClient {
         }
       }
       return delay({ applied, conflicts, serverTime: now() });
+    },
+
+    async listSuppliers(token) {
+      requireUser(token);
+      return delay(suppliers);
+    },
+
+    async listPurchaseOrders(token) {
+      requireUser(token);
+      return delay(purchaseOrders);
+    },
+
+    async getPurchaseOrder(token, id) {
+      requireUser(token);
+      const po = purchaseOrders.find((p) => p.id === id);
+      if (!po) throw new Error('Purchase order not found');
+      return delay(po);
+    },
+
+    async createPurchaseOrder(token, body: CreatePurchaseOrderRequest) {
+      const user = requireUser(token);
+      if (user.role === 'Sales') {
+        throw new Error('Role cannot create purchase orders');
+      }
+      const supplier = suppliers.find((s) => s.id === body.supplierId);
+      if (!supplier) throw new Error('Unknown supplier');
+      const lines = body.lines.map((line, i) => {
+        const product = products.find((p) => p.id === line.productId);
+        if (!product) throw new Error(`Unknown product ${line.productId}`);
+        return {
+          id: `pol-${Date.now()}-${i}`,
+          productId: product.id,
+          sku: product.sku,
+          name: product.name,
+          quantity: line.quantity,
+          receivedQty: 0,
+          unitCost: line.unitCost ?? product.unitCost,
+        };
+      });
+      const po: PurchaseOrder = {
+        id: `po-${Date.now()}`,
+        supplierId: supplier.id,
+        supplierName: supplier.name,
+        warehouseId: body.warehouseId,
+        status: 'ordered',
+        notes: body.notes,
+        lines,
+        orderedAt: now(),
+        createdAt: now(),
+        updatedAt: now(),
+      };
+      purchaseOrders = [po, ...purchaseOrders];
+      return delay(po);
+    },
+
+    async receivePurchaseOrder(
+      token,
+      id,
+      body: ReceivePurchaseOrderRequest,
+    ) {
+      const user = requireUser(token);
+      if (user.role === 'Sales') {
+        throw new Error('Role cannot receive goods');
+      }
+      const po = purchaseOrders.find((p) => p.id === id);
+      if (!po) throw new Error('Purchase order not found');
+      if (po.status === 'cancelled' || po.status === 'received') {
+        throw new Error(`Cannot receive PO in status ${po.status}`);
+      }
+
+      for (const recv of body.lines) {
+        const line = po.lines.find((l) => l.productId === recv.productId);
+        if (!line) throw new Error(`Product ${recv.productId} not on PO`);
+        const remaining = line.quantity - line.receivedQty;
+        if (recv.quantity > remaining) {
+          throw new Error(`Only ${remaining} remaining for ${recv.productId}`);
+        }
+        line.receivedQty += recv.quantity;
+        const level = stock.find(
+          (s) =>
+            s.productId === recv.productId && s.warehouseId === po.warehouseId,
+        );
+        if (level) {
+          level.quantity += recv.quantity;
+          level.updatedAt = now();
+        } else {
+          stock.push({
+            id: `s-${Date.now()}`,
+            productId: recv.productId,
+            warehouseId: po.warehouseId,
+            quantity: recv.quantity,
+            updatedAt: now(),
+          });
+        }
+      }
+
+      const allReceived = po.lines.every((l) => l.receivedQty >= l.quantity);
+      const anyReceived = po.lines.some((l) => l.receivedQty > 0);
+      po.status = allReceived ? 'received' : anyReceived ? 'partial' : po.status;
+      po.updatedAt = now();
+      return delay(po);
     },
   };
 }

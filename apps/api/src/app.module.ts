@@ -6,6 +6,7 @@ import { StockModule } from './stock/stock.module';
 import { OrdersModule } from './orders/orders.module';
 import { ReportsModule } from './reports/reports.module';
 import { SyncModule } from './sync/sync.module';
+import { PurchasingModule } from './purchasing/purchasing.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { FirebaseModule } from './firebase/firebase.module';
 import { HealthController } from './health.controller';
@@ -21,6 +22,7 @@ import { HealthController } from './health.controller';
     OrdersModule,
     ReportsModule,
     SyncModule,
+    PurchasingModule,
   ],
   controllers: [HealthController],
 })

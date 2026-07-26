@@ -78,9 +78,10 @@ Set `EXPO_PUBLIC_FIREBASE_*` in `apps/mobile/.env` and `FIREBASE_PROJECT_ID` + s
 - Dashboard (revenue, low stock)
 - Inventory search / product detail
 - Barcode scan + cart + checkout (cash/terminal)
+- Purchase orders: list, create, receive goods (stock increments)
 - Offline outbox → `POST /api/sync` (LWW conflicts)
 - Mock and live API adapters
 
 ## Deferred (v1+)
 
-Multi-warehouse transfers, full PO/receive UI, returns, multi-currency, accounting integrations, serial/lot/BOM.
+Multi-warehouse transfers, returns, multi-currency, accounting integrations, serial/lot/BOM.

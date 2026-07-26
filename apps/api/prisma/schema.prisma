@@ -25,6 +25,14 @@ enum PaymentMethod {
   terminal
 }
 
+enum PurchaseOrderStatus {
+  draft
+  ordered
+  partial
+  received
+  cancelled
+}
+
 model User {
   id           String    @id @default(cuid())
   email        String    @unique
@@ -38,31 +46,33 @@ model User {
 }
 
 model Warehouse {
-  id          String       @id @default(cuid())
-  name        String
-  location    String?
-  stockLevels StockLevel[]
-  salesOrders SalesOrder[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id             String          @id @default(cuid())
+  name           String
+  location       String?
+  stockLevels    StockLevel[]
+  salesOrders    SalesOrder[]
+  purchaseOrders PurchaseOrder[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 }
 
 model Product {
-  id           String       @id @default(cuid())
-  sku          String       @unique
-  name         String
-  description  String       @default("")
-  barcode      String?      @unique
-  unitCost     Float
-  basePrice    Float
-  taxClass     String       @default("standard")
-  taxRate      Float        @default(0.1)
-  reorderPoint Int          @default(5)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  priceTiers   PriceTier[]
-  stockLevels  StockLevel[]
-  orderLines   SalesOrderLine[]
+  id                 String              @id @default(cuid())
+  sku                String              @unique
+  name               String
+  description        String              @default("")
+  barcode            String?             @unique
+  unitCost           Float
+  basePrice          Float
+  taxClass           String              @default("standard")
+  taxRate            Float               @default(0.1)
+  reorderPoint       Int                 @default(5)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  priceTiers         PriceTier[]
+  stockLevels        StockLevel[]
+  orderLines         SalesOrderLine[]
+  purchaseOrderLines PurchaseOrderLine[]
 }
 
 model PriceTier {
@@ -159,4 +169,42 @@ model SyncOutbox {
   type             String
   payload          Json
   appliedAt        DateTime @default(now())
+}
+
+model Supplier {
+  id              String          @id @default(cuid())
+  name            String
+  contactInfo     String?
+  email           String?
+  phone           String?
+  leadTimeDays    Int             @default(7)
+  defaultCurrency String          @default("USD")
+  purchaseOrders  PurchaseOrder[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model PurchaseOrder {
+  id          String              @id @default(cuid())
+  supplierId  String
+  warehouseId String
+  status      PurchaseOrderStatus @default(ordered)
+  notes       String?
+  orderedAt   DateTime            @default(now())
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  supplier    Supplier            @relation(fields: [supplierId], references: [id])
+  warehouse   Warehouse           @relation(fields: [warehouseId], references: [id])
+  lines       PurchaseOrderLine[]
+}
+
+model PurchaseOrderLine {
+  id              String        @id @default(cuid())
+  purchaseOrderId String
+  productId       String
+  quantity        Int
+  receivedQty     Int           @default(0)
+  unitCost        Float
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product         Product       @relation(fields: [productId], references: [id])
 }
