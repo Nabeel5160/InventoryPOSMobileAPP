@@ -16,6 +16,10 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install
+      - name: Generate Prisma client
+        run: pnpm --filter @iq/api prisma:generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/iq?schema=public
       - run: pnpm --filter @iq/shared build
       - run: pnpm --filter @iq/shared test
       - run: pnpm --filter @iq/api test
